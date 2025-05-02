@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "627073917542",
+    "project_id": "trav-280208",
+    "storage_bucket": "trav-280208.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:627073917542:android:b59d2b5125c1bdd4b903a7",
+        "android_client_info": {
+          "package_name": "com.example.temphumidityjehu"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA7dlbYlpcEzdgnE367Kcg6kvVWfW7TUjk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:627073917542:android:1b5938f9b9070e98b903a7",
+        "android_client_info": {
+          "package_name": "com.example.thespotlsk"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA7dlbYlpcEzdgnE367Kcg6kvVWfW7TUjk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
