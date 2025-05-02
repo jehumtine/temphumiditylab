@@ -40,6 +40,8 @@ class _DashboardPageState extends State<DashboardPage> {
   bool isLoading = true;
   String errorMessage = '';
   late Timer _refreshTimer;
+  bool _isSendingRequest = false;
+  String _actionStatus = '';
 
   @override
   void initState() {
@@ -64,7 +66,7 @@ class _DashboardPageState extends State<DashboardPage> {
         isLoading = true;
       });
 
-
+      // Replace with your actual API endpoint
       final response = await http.get(Uri.parse('http://192.168.246.193:5000/api/data'));
 
       if (response.statusCode == 200) {
@@ -93,6 +95,21 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
+  Future<void> toggleOn() async {
+
+      final response = await http.get(
+        Uri.parse('http://192.168.246.193:5000/toggle-on'),
+        headers: {'Content-Type': 'application/json'},
+      );
+  }
+
+  Future<void> toggleOff() async {
+      final response = await http.get(
+        Uri.parse('http://192.168.246.193:5000/toggle-off'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+  }
   SensorData? get latestData {
     return sensorData.isNotEmpty ? sensorData.last : null;
   }
@@ -123,203 +140,274 @@ class _DashboardPageState extends State<DashboardPage> {
           ? Center(child: Text(errorMessage))
           : Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Main chart card
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade800),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Temperature and Humidity',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    height: 200,
-                    child: sensorData.isEmpty
-                        ? const Center(child: Text('No data available'))
-                        : SimpleChartWidget(sensorData: sensorData),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 20,
-                            height: 4,
-                            color: const Color(0xFFCCFF00), // Lime green for humidity
-                          ),
-                          const SizedBox(width: 8),
-                          const Text('Humidity Sensor'),
-                        ],
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              // Main chart card
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade800),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Temperature and Humidity',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
-                      const SizedBox(width: 20),
-                      Row(
-                        children: [
-                          Container(
-                            width: 20,
-                            height: 4,
-                            color: Colors.orange, // Orange for temperature
-                          ),
-                          const SizedBox(width: 8),
-                          const Text('Temperature Sensor'),
-                        ],
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      height: 200,
+                      child: sensorData.isEmpty
+                          ? const Center(child: Text('No data available'))
+                          : SimpleChartWidget(sensorData: sensorData),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 20,
+                              height: 4,
+                              color: const Color(0xFFCCFF00), // Lime green for humidity
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('Humidity Sensor'),
+                          ],
+                        ),
+                        const SizedBox(width: 20),
+                        Row(
+                          children: [
+                            Container(
+                              width: 20,
+                              height: 4,
+                              color: Colors.orange, // Orange for temperature
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('Temperature Sensor'),
+                          ],
+                        ),
+                      ],
+                    ),
+                    if (latestData != null) ...[
+                      const SizedBox(height: 12),
+                      Center(
+                        child: Text(
+                          'Last updated: ${formatTimestamp(latestData!.timestamp)}',
+                          style: TextStyle(color: Colors.grey),
+                        ),
                       ),
                     ],
-                  ),
-                  if (latestData != null) ...[
-                    const SizedBox(height: 12),
-                    Center(
-                      child: Text(
-                        'Last updated: ${formatTimestamp(latestData!.timestamp)}',
-                        style: TextStyle(color: Colors.grey),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Gauges row
+              Row(
+                children: [
+                  // Temperature gauge
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade800),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          const Text(
+                            'Temperature in Celcius',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          latestData != null
+                              ? CircularPercentIndicator(
+                            radius: 80,
+                            lineWidth: 15,
+                            percent: double.parse(latestData!.temperature) / 100,
+                            center: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  latestData!.temperature,
+                                  style: const TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const Text(
+                                  'C°',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            progressColor: const Color(0xFFCCFF00), // Lime green
+                            backgroundColor: Colors.grey.shade800,
+                            circularStrokeCap: CircularStrokeCap.round,
+                            startAngle: 150,
+                            animation: true,
+                            animationDuration: 1000,
+                          )
+                              : const CircularProgressIndicator(),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: const [
+                              Text('0'),
+                              Text('100'),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
+                  const SizedBox(width: 20),
+                  // Humidity gauge
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade800),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          const Text(
+                            'Relative Humidity',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          latestData != null
+                              ? CircularPercentIndicator(
+                            radius: 80,
+                            lineWidth: 15,
+                            percent: double.parse(latestData!.humidity) / 100,
+                            center: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  latestData!.humidity,
+                                  style: const TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const Text(
+                                  '% Humidity',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            progressColor: const Color(0xFFCCFF00), // Lime green
+                            backgroundColor: Colors.grey.shade800,
+                            circularStrokeCap: CircularStrokeCap.round,
+                            startAngle: 150,
+                            animation: true,
+                            animationDuration: 1000,
+                          )
+                              : const CircularProgressIndicator(),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: const [
+                              Text('0'),
+                              Text('100'),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
-            ),
-            const SizedBox(height: 20),
-            // Gauges row
-            Row(
-              children: [
-                // Temperature gauge
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade800),
-                      borderRadius: BorderRadius.circular(8),
+              const SizedBox(height: 20),
+              // Control buttons
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade800),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Control Panel',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
+                    const SizedBox(height: 16),
+                    Row(
                       children: [
-                        const Text(
-                          'Temperature in Celcius',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _isSendingRequest ? null : () => toggleOn(),
+                            label: const Text('Turn Light On'),
+                            style: ElevatedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              backgroundColor: Colors.blue,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 20),
-                        latestData != null
-                            ? CircularPercentIndicator(
-                          radius: 80,
-                          lineWidth: 15,
-                          percent: double.parse(latestData!.temperature) / 100,
-                          center: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                latestData!.temperature,
-                                style: const TextStyle(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _isSendingRequest ? null : () => toggleOff(),
+                            label: const Text('Turn Light Off'),
+                            style: ElevatedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              backgroundColor: Colors.green,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              const Text(
-                                'C°',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                          progressColor: const Color(0xFFCCFF00), // Lime green
-                          backgroundColor: Colors.grey.shade800,
-                          circularStrokeCap: CircularStrokeCap.round,
-                          startAngle: 150,
-                          animation: true,
-                          animationDuration: 1000,
-                        )
-                            : const CircularProgressIndicator(),
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: const [
-                            Text('0'),
-                            Text('100'),
-                          ],
                         ),
                       ],
                     ),
-                  ),
-                ),
-                const SizedBox(width: 20),
-                // Humidity gauge
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade800),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        const Text(
-                          'Relative Humidity',
+                    if (_actionStatus.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Center(
+                        child: Text(
+                          _actionStatus,
                           style: TextStyle(
-                            fontSize: 16,
+                            color: _actionStatus.contains('Error')
+                                ? Colors.red
+                                : Colors.green,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 20),
-                        latestData != null
-                            ? CircularPercentIndicator(
-                          radius: 80,
-                          lineWidth: 15,
-                          percent: double.parse(latestData!.humidity) / 100,
-                          center: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                latestData!.humidity,
-                                style: const TextStyle(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const Text(
-                                '% Humidity',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                          progressColor: const Color(0xFFCCFF00), // Lime green
-                          backgroundColor: Colors.grey.shade800,
-                          circularStrokeCap: CircularStrokeCap.round,
-                          startAngle: 150,
-                          animation: true,
-                          animationDuration: 1000,
-                        )
-                            : const CircularProgressIndicator(),
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: const [
-                            Text('0'),
-                            Text('100'),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
+                      ),
+                    ],
+                  ],
                 ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
