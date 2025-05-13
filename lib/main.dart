@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:intl/intl.dart';
 import 'dart:ui' as ui;
+import 'chart_detail.dart';
+const String BaseURL = 'http://192.168.125.193:5000';
 void main() {
   runApp(const MyApp());
 }
@@ -38,6 +40,7 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   List<SensorData> sensorData = [];
   bool isLoading = true;
+  bool _listening = false;
   String errorMessage = '';
   late Timer _refreshTimer;
   bool _isSendingRequest = false;
@@ -67,7 +70,7 @@ class _DashboardPageState extends State<DashboardPage> {
       });
 
       // Replace with your actual API endpoint
-      final response = await http.get(Uri.parse('http://192.168.246.193:5000/api/data'));
+      final response = await http.get(Uri.parse(BaseURL + '/api/data'));
 
       if (response.statusCode == 200) {
         final List<dynamic> jsonData = json.decode(response.body);
@@ -98,14 +101,14 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<void> toggleOn() async {
 
       final response = await http.get(
-        Uri.parse('http://192.168.246.193:5000/toggle-on'),
+        Uri.parse(BaseURL+'/toggle-on'),
         headers: {'Content-Type': 'application/json'},
       );
   }
 
   Future<void> toggleOff() async {
       final response = await http.get(
-        Uri.parse('http://192.168.246.193:5000/toggle-off'),
+        Uri.parse(BaseURL+'/toggle-off'),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -442,6 +445,7 @@ class SensorData {
   }
 }
 
+
 class SimpleChartWidget extends StatelessWidget {
   final List<SensorData> sensorData;
 
@@ -457,9 +461,46 @@ class SimpleChartWidget extends StatelessWidget {
         ? sensorData.sublist(sensorData.length - 20)
         : sensorData;
 
-    return CustomPaint(
-      size: Size.infinite,
-      painter: ChartPainter(sensorData: displayData),
+    return Stack(
+      children: [
+        // Original chart
+        CustomPaint(
+          size: Size.infinite,
+          painter: ChartPainter(sensorData: displayData),
+        ),
+
+        // Transparent overlay for touch detection
+        Positioned.fill(
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DetailChartPage(
+                      sensorData: sensorData,
+                    ),
+                  ),
+                );
+              },
+              splashColor: Colors.white.withOpacity(0.1),
+              highlightColor: Colors.transparent,
+              child: Align(
+                alignment: Alignment.topRight,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Icon(
+                    Icons.fullscreen,
+                    color: Colors.grey.withOpacity(0.7),
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
