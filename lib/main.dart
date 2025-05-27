@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:intl/intl.dart';
+import 'package:speech_to_text/speech_recognition_result.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 import 'dart:ui' as ui;
 import 'chart_detail.dart';
-const String BaseURL = 'http://192.168.125.193:5000';
+const String BaseURL = 'http://192.168.84.193:5000';
 void main() {
   runApp(const MyApp());
 }
@@ -38,6 +40,7 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
+  SpeechToText _speech = SpeechToText();
   List<SensorData> sensorData = [];
   bool isLoading = true;
   bool _listening = false;
@@ -50,16 +53,56 @@ class _DashboardPageState extends State<DashboardPage> {
   void initState() {
     super.initState();
     fetchData();
-
-    // Set up timer to refresh data every 30 seconds
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       fetchData();
     });
+    _initializeSpeech();
+  }
+  Future<void> _initializeSpeech() async {
+    print("initializing speech");
+    bool available = await _speech.initialize(
+      onStatus: _onSpeechStatus,
+      onError: _onSpeechError,
+    );
+    if (available) {
+      _startListening();
+    }
+  }
+
+  void _onSpeechStatus(String status) {
+    if (status == 'done' || status == 'notListening') {
+      _startListening(); // Restart listening when it stops
+    }
+  }
+
+  void _onSpeechError(dynamic error) {
+    print('Speech error: $error');
+    // Optional: handle error (restart, etc.)
+  }
+
+  void _startListening() async {
+    await _speech.listen(
+      onResult: _onSpeechResult,
+    );
+    print("turning listenning on");
+    setState(() => _listening = true);
+  }
+
+  void _onSpeechResult(SpeechRecognitionResult result) {
+    String command = result.recognizedWords.toLowerCase();
+    print("Heard: $command");
+
+    if (command.contains('on')) {
+      toggleOn();
+    } else if (command.contains('off')) {
+      toggleOff();
+    }
   }
 
   @override
   void dispose() {
     _refreshTimer.cancel();
+    _speech.stop();
     super.dispose();
   }
 

@@ -40,7 +40,7 @@ dependencies:
   firebase_core: ^3.13.0
   cloud_firestore: ^5.6.6
   fl_chart: ^0.66.0
-  porcupine_flutter: ^2.2.0
+  speech_to_text: ^7.0.0
 
 
 dev_dependencies:
